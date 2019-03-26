@@ -4,7 +4,7 @@
 
 <div align="center">
   <h1 align="center">Monit</h1>
-  <i align="center">TCP/UDP Monitoring tool for windows Rebased on a WPF style with filters.</i>
+  <i align="center">TCP/UDP Monitoring tool for windows rebased on a WPF style with filters.</i>
 </div>
 
 <p align="center">
