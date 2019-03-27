@@ -9,6 +9,8 @@ using System.Linq;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Input;
+using System.Data;
+using System.Windows.Controls;
 
 namespace Monit
 {
@@ -286,7 +288,7 @@ namespace Monit
                 {
                     filters.Add("LR " + txt_local_ip.Text + " " + txt_remote_ip.Text);
                     Upgrade_Filter();
-                    Upgrade_Filter_txtbox("LR", txt_local_ip.Text + " >> " + txt_remote_ip.Text);
+                    Upgrade_Filter_databox("LR", txt_local_ip.Text + " >> " + txt_remote_ip.Text);
                 }
             }
         }
@@ -303,7 +305,7 @@ namespace Monit
                 {
                     filters.Add("POI " + txt_port_in.Text);
                     Upgrade_Filter();
-                    Upgrade_Filter_txtbox("POI", txt_port_in.Text);
+                    Upgrade_Filter_databox("POI", txt_port_in.Text);
                 }
             }
         }
@@ -320,7 +322,7 @@ namespace Monit
                 {
                     filters.Add("POO " + txt_port_out.Text);
                     Upgrade_Filter();
-                    Upgrade_Filter_txtbox("POO", txt_port_out.Text);
+                    Upgrade_Filter_databox("POO", txt_port_out.Text);
                 }
             }
         }
@@ -337,7 +339,7 @@ namespace Monit
                 {
                     filters.Add("PR " + txt_program.Text);
                     Upgrade_Filter();
-                    Upgrade_Filter_txtbox("PR", txt_program.Text);
+                    Upgrade_Filter_databox("PR", txt_program.Text);
                 }
             }
         }
@@ -367,9 +369,78 @@ namespace Monit
             }
         }
 
-        private void Upgrade_Filter_txtbox(string type, string filter)
+        private void Upgrade_Filter_databox(string type, string filter)
         {
-            txt_filters.Text += type + " - " + filter + "\n"; 
+            Filter data = new Filter { Type = type, FilterName = filter };
+            Data_filters.Items.Add(data);
+        }
+
+        private void Delete_Row_Click(object sender, RoutedEventArgs e)
+        {
+            
+            if (Data_filters.SelectedItem != null)
+            {
+                DataGridCellInfo cell = Data_filters.SelectedCells[0];
+                Filter filterCell = (Filter)cell.Item;
+                foreach(string filter in filters)
+                {
+                    string[] filterResult = filter.Split(' ');
+                    if (filterResult[0] == "LR" && filterCell.Type == "LR")
+                    {
+                        string adl = filterCell.FilterName.Split(' ')[0];
+                        string adr = filterCell.FilterName.Split(' ')[2];
+
+                        chkLocals.Remove(adl);
+                        chkRemotes.Remove(adr);
+                        filters.Remove(filterCell.Type + " " + adl + " " + adr);
+                        break;
+                    }
+                    if (filterResult[0] == "POI" && filterCell.Type == "POI")
+                    {
+                        chkPortIncs.Remove(filterCell.FilterName);
+                        filters.Remove(filterCell.Type + " " + filterCell.FilterName);
+                        break;
+                    }
+                    if (filterResult[0] == "POO" && filterCell.Type == "POO")
+                    {
+                        chkPortOuts.Remove(filterCell.FilterName);
+                        filters.Remove(filterCell.Type + " " + filterCell.FilterName);
+                        break;
+                    }
+                    if (filterResult[0] == "PR" && filterCell.Type == "PR")
+                    {
+                        chkPrograms.Remove(filterCell.FilterName);
+                        filters.Remove(filterCell.Type + " " + filterCell.FilterName);
+                        break;
+                    }
+                }
+
+                Data_filters.Items.Remove(Data_filters.SelectedItem);
+            }
+        }
+
+        private void Export_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
+            dlg.FileName = "Monit_export";
+            dlg.DefaultExt = ".txt";
+            dlg.Filter = "Text documents (.txt)|*.txt";
+            
+            Nullable<bool> result = dlg.ShowDialog();
+            
+            if (result == true)
+            {
+                string filename = dlg.FileName;
+                foreach (string filter in filters)
+                {
+                    System.IO.File.AppendAllText(dlg.FileName, filter + Environment.NewLine);
+                }
+            }
+        }
+
+        private void Import_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 
@@ -463,6 +534,12 @@ namespace Monit
                 ProcessName = Process.GetProcessById(ProcessId).ProcessName;
             }
         }
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    public class Filter
+    {
+        public string Type { get; set; }
+        public string FilterName { get; set; }
     }
 
     public enum Protocol
