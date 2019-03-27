@@ -27,16 +27,21 @@
         </DataGrid>
         <TextBlock Text="HIDING FILTER" Grid.Column="1" Margin="634,10,55,533"></TextBlock>
         <TextBlock Text="LOCAL IP          TO       REMOTE IP" Grid.Column="1" Margin="583,43,10,500"></TextBlock>
-        <TextBox x:Name="txt_local_ip" KeyDown="Txt_local_ip_keycatch" Grid.Column="1" Margin="583,62,106,477"></TextBox>
-        <TextBox x:Name="txt_remote_ip" KeyDown="Txt_remote_ip_keycatch" Grid.Column="1" Margin="679,62,10,477"></TextBox>
-        <TextBlock Text="PORT :" Grid.Column="1" Margin="583,99,106,444"></TextBlock>
-        <TextBox x:Name="txt_port" KeyDown="Txt_port_keycatch"  Grid.Column="1" Margin="583,117,10,422"></TextBox>
+        <TextBox x:Name="txt_local_ip" KeyDown="Txt_lr_ip_keycatch" Grid.Column="1" Margin="583,62,106,477"></TextBox>
+        <TextBox x:Name="txt_remote_ip" KeyDown="Txt_lr_ip_keycatch" Grid.Column="1" Margin="679,62,10,477"></TextBox>
+        <TextBlock Text="PORT IN" Grid.Column="1" Margin="583,99,106,444"></TextBlock>
+        <TextBox x:Name="txt_port_in" KeyDown="Txt_port_in_keycatch"  Grid.Column="1" Margin="583,117,107,422"></TextBox>
+        <TextBlock Text="PORT OUT" Grid.Column="1" Margin="680,99,9,444"></TextBlock>
+        <TextBox x:Name="txt_port_out" KeyDown="Txt_port_out_keycatch"  Grid.Column="1" Margin="680,117,10,422"></TextBox>
         <TextBlock Text="PROGRAM :" Grid.Column="1" Margin="583,154,106,389"></TextBlock>
         <TextBox x:Name="txt_program" KeyDown="Txt_program_keycatch" Grid.Column="1" Margin="583,173,10,366"></TextBox>
-        <ScrollViewer Grid.Column="1" Margin="578,210,0,10" IsEnabled="False">
+        <ScrollViewer Grid.Column="1" Margin="579,239,9,44" IsEnabled="False">
             <TextBox x:Name="txt_filters">
 
             </TextBox>
         </ScrollViewer>
+        <Button Content="Remove" Margin="703,205,10,332" Grid.Column="1"/>
+        <Button Content="Export" Margin="630,527,83,10" Grid.Column="1"/>
+        <Button Content="Import" Margin="703,527,10,10" Grid.Column="1"/>
     </Grid>
 </Window>

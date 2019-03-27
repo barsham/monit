@@ -15,6 +15,7 @@ namespace Monit
     public partial class MainWindow : Window
     {
         private const int AF_INET = 2;
+        private static bool INITIATE = false;
         private static List<TcpProcessRecord> TcpActiveConnections = null;
         private static List<UdpProcessRecord> UdpActiveConnections = null;
         DispatcherTimer dispatcherTimer = new DispatcherTimer();
@@ -28,6 +29,11 @@ namespace Monit
             bool bOrder, int ulAf, UdpTableClass tableClass, uint reserved = 0);
 
         private static List<string> filters = new List<string>();
+        private static List<string> chkLocals = new List<string>();
+        private static List<string> chkRemotes = new List<string>();
+        private static List<string> chkPortIncs = new List<string>();
+        private static List<string> chkPortOuts = new List<string>();
+        private static List<string> chkPrograms = new List<string>();
 
         public MainWindow()
         {
@@ -40,7 +46,10 @@ namespace Monit
 
         private void DispatcherTimer_Tick(object sender, EventArgs e)
         {
-            MB_change(Mode_Combo, e);
+            if (INITIATE)
+            {
+                MB_change(Mode_Combo, e);
+            }
         }
 
         private static List<TcpProcessRecord> GetAllTcpConnections()
@@ -72,42 +81,12 @@ namespace Monit
                     MIB_TCPROW_OWNER_PID tcpRow = (MIB_TCPROW_OWNER_PID)Marshal.
                         PtrToStructure(tableRowPtr, typeof(MIB_TCPROW_OWNER_PID));
 
-                    List<string> chkLocals = new List<string>();
-                    List<string> chkRemotes = new List<string>();
-                    List<string> chkPortIncs = new List<string>();
-                    List<string> chkPortOuts = new List<string>();
-                    List<string> chkPrograms = new List<string>();
+                    bool nop = false;
 
-                    foreach (string filter in filters)
+                    if (chkLocals.Count > 0 && chkRemotes.Count > 0)
                     {
-                        string[] filterResult = filter.Split(' ');
-                        if(filterResult[0] == "LR")
-                        {
-                            chkLocals.Add(filterResult[1]);
-                            chkRemotes.Add(filterResult[2]);
-                        }
-                        if (filterResult[0] == "PO")
-                        {
-                            chkPortIncs.Add(filterResult[1]);
-                            chkPortOuts.Add(filterResult[2]);
-                        }
-                        if (filterResult[0] == "PR")
-                        {
-                            chkPrograms.Add(filterResult[1]);
-                        }
-                    }
-
-                    string local = new IPAddress(tcpRow.localAddr).ToString();
-                    string remote = new IPAddress(tcpRow.remoteAddr).ToString();
-                    string portInc = tcpRow.localPort.ToString();
-                    string portOut = tcpRow.remotePort.ToString();
-                    //if (Process.GetProcesses().Any(process => process.Id == tcpRow.owningPid))
-                    //{
-                    //    string program = Process.GetProcessById(tcpRow.owningPid).ProcessName;
-                    //}
-                    if (chkLocals.Count > 0)
-                    {
-                        bool nop = false;
+                        string local = new IPAddress(tcpRow.localAddr).ToString();
+                        string remote = new IPAddress(tcpRow.remoteAddr).ToString();
                         foreach (string chkLocal in chkLocals)
                         {
                             foreach (string chkRemote in chkRemotes)
@@ -123,33 +102,61 @@ namespace Monit
                                 break;
                             }
                         }
-                        if (!nop)
+                    }
+                    if (chkPrograms.Count > 0)
+                    {
+                        string program = Process.GetProcessById(tcpRow.owningPid).ProcessName;
+                        foreach (string chkProgram in chkPrograms)
                         {
-                            tcpTableRecords.Add(new TcpProcessRecord(
-                              new IPAddress(tcpRow.localAddr),
-                              new IPAddress(tcpRow.remoteAddr),
-                              BitConverter.ToUInt16(new byte[2] {
-                          tcpRow.localPort[1],
-                          tcpRow.localPort[0] }, 0),
-                              BitConverter.ToUInt16(new byte[2] {
-                          tcpRow.remotePort[1],
-                          tcpRow.remotePort[0] }, 0),
-                              tcpRow.owningPid, tcpRow.state));
+                            if (program.ToLower() == chkProgram.ToLower())
+                            {
+                                nop = true;
+                                break;
+                            }
                         }
                     }
-                    else
+                    if (chkPortIncs.Count > 0)
+                    {
+                        string portInc = BitConverter.ToUInt16(new byte[2] {
+                          tcpRow.localPort[1],
+                          tcpRow.localPort[0] }, 0).ToString();
+                        foreach (string chkPortInc in chkPortIncs)
+                        {
+                            if (portInc == chkPortInc)
+                            {
+                                nop = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (chkPortOuts.Count > 0)
+                    {
+                        string portOut = BitConverter.ToUInt16(new byte[2] {
+                          tcpRow.remotePort[1],
+                          tcpRow.remotePort[0] }, 0).ToString();
+                        foreach (string chkPortOut in chkPortOuts)
+                        {
+                            if (portOut == chkPortOut)
+                            {
+                                nop = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!nop)
                     {
                         tcpTableRecords.Add(new TcpProcessRecord(
                           new IPAddress(tcpRow.localAddr),
                           new IPAddress(tcpRow.remoteAddr),
                           BitConverter.ToUInt16(new byte[2] {
-                          tcpRow.localPort[1],
-                          tcpRow.localPort[0] }, 0),
+                                      tcpRow.localPort[1],
+                                      tcpRow.localPort[0] }, 0),
                           BitConverter.ToUInt16(new byte[2] {
                           tcpRow.remotePort[1],
                           tcpRow.remotePort[0] }, 0),
                           tcpRow.owningPid, tcpRow.state));
                     }
+                    nop = true;
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
                 }
             }
@@ -242,6 +249,10 @@ namespace Monit
 
         private void Start_Capture_Click(object sender, EventArgs e)
         {
+            if (!INITIATE)
+            {
+                INITIATE = true;
+            }
             dispatcherTimer.IsEnabled = true;
             Stop_capture.Background = new SolidColorBrush(Colors.LightCyan);
             Start_capture.Background = new SolidColorBrush(Colors.Gray);
@@ -259,27 +270,7 @@ namespace Monit
             Stop_capture.IsEnabled = false;
         }
 
-        private void Txt_local_ip_keycatch(object sender, KeyEventArgs e)
-        {
-            if(e.Key == Key.Enter)
-            {
-                if(txt_remote_ip.Text.Length < 1)
-                {
-                    MessageBox.Show("Please enter a remote host ip adress.", "Input error",MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                }
-                else if (txt_local_ip.Text.Length < 1)
-                {
-                    MessageBox.Show("Please enter a valid local host ip adress.", "Input error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                }
-                else
-                {
-                    filters.Add("LR " + txt_local_ip.Text + " " + txt_remote_ip.Text);
-                    txt_filters.Text += txt_local_ip.Text + " >> " + txt_remote_ip.Text + "\n";
-                }
-            }
-        }
-
-        private void Txt_remote_ip_keycatch(object sender, KeyEventArgs e)
+        private void Txt_lr_ip_keycatch(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
@@ -294,16 +285,43 @@ namespace Monit
                 else
                 {
                     filters.Add("LR " + txt_local_ip.Text + " " + txt_remote_ip.Text);
-                    txt_filters.Text += txt_local_ip.Text + " >> " + txt_remote_ip.Text + "\n";
+                    Upgrade_Filter();
+                    Upgrade_Filter_txtbox("LR", txt_local_ip.Text + " >> " + txt_remote_ip.Text);
                 }
             }
         }
 
-        private void Txt_port_keycatch(object sender, KeyEventArgs e)
+        private void Txt_port_in_keycatch(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                txt_filters.Text += txt_port.Text + "\n";
+                if (txt_port_in.Text.Length < 1)
+                {
+                    MessageBox.Show("Please enter a valid port in number.", "Input error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
+                else
+                {
+                    filters.Add("POI " + txt_port_in.Text);
+                    Upgrade_Filter();
+                    Upgrade_Filter_txtbox("POI", txt_port_in.Text);
+                }
+            }
+        }
+
+        private void Txt_port_out_keycatch(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                if (txt_port_out.Text.Length < 1)
+                {
+                    MessageBox.Show("Please enter a valid program name.", "Input error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
+                else
+                {
+                    filters.Add("POO " + txt_port_out.Text);
+                    Upgrade_Filter();
+                    Upgrade_Filter_txtbox("POO", txt_port_out.Text);
+                }
             }
         }
 
@@ -311,8 +329,47 @@ namespace Monit
         {
             if (e.Key == Key.Enter)
             {
-                txt_filters.Text += txt_program.Text + "\n";
+                if (txt_program.Text.Length < 1)
+                {
+                    MessageBox.Show("Please enter a valid program name.", "Input error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
+                else
+                {
+                    filters.Add("PR " + txt_program.Text);
+                    Upgrade_Filter();
+                    Upgrade_Filter_txtbox("PR", txt_program.Text);
+                }
             }
+        }
+
+        private void Upgrade_Filter()
+        {
+            foreach (string filter in filters)
+            {
+                string[] filterResult = filter.Split(' ');
+                if (filterResult[0] == "LR")
+                {
+                    chkLocals.Add(filterResult[1]);
+                    chkRemotes.Add(filterResult[2]);
+                }
+                if (filterResult[0] == "POI")
+                {
+                    chkPortIncs.Add(filterResult[1]);
+                }
+                if (filterResult[0] == "POO")
+                {
+                    chkPortOuts.Add(filterResult[1]);
+                }
+                if (filterResult[0] == "PR")
+                {
+                    chkPrograms.Add(filterResult[1]);
+                }
+            }
+        }
+
+        private void Upgrade_Filter_txtbox(string type, string filter)
+        {
+            txt_filters.Text += type + " - " + filter + "\n"; 
         }
     }
 
