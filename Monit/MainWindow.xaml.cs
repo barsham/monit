@@ -11,6 +11,7 @@ using System.Windows.Threading;
 using System.Windows.Input;
 using System.Data;
 using System.Windows.Controls;
+using Microsoft.Win32;
 
 namespace Monit
 {
@@ -437,10 +438,31 @@ namespace Monit
                 }
             }
         }
-
+        
         private void Import_Click(object sender, RoutedEventArgs e)
         {
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Text documents (.txt)|*.txt";
 
+            Nullable<bool> result = dlg.ShowDialog();
+            if (result == true)
+            {
+                string filename = dlg.FileName;
+                filters = System.IO.File.ReadAllLines(filename).ToList<string>();
+                Upgrade_Filter();
+                foreach(string filter in filters)
+                {
+                    string[] ToPush = filter.Split(' ');
+                    if(ToPush[0] == "LR")
+                    {
+                        Upgrade_Filter_databox(ToPush[0], ToPush[1] + " >> " + ToPush[2]);
+                    }
+                    else
+                    {
+                        Upgrade_Filter_databox(ToPush[0], ToPush[1]);
+                    }
+                }
+            }
         }
     }
 
