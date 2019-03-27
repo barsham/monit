@@ -1,3 +1,4 @@
 /.vs
 /Monit/bin/*
 /Monit/obj/*
+/Monit/obj/Debug/*
